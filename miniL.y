@@ -264,6 +264,11 @@ declaration: identifiers  COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET O
 	std::string value = $1;
 	Type t = Array;
 	int size = $5;
+	Type T = Integer;
+ 	if(find(value, t) || find(value, T)){
+		std::string error = "symbol \"" + value + "\"is multiply-defined"; 	
+		yyerror(strdup(error.c_str()));
+	}      
 	add_variable_to_symbol_table(value, t,0, 0);
 	output << ".[] " << $1 << ", " << $5<< std::endl;
 	}
@@ -272,6 +277,11 @@ declaration: identifiers  COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET O
 	*/
 	std::string value = $1;
   	Type t = Integer;
+	Type T = Array;
+        if(find(value, t) || find(value, T)){
+                std::string error = "symbol \"" + value + "\"is multiply-defined";
+                yyerror(strdup(error.c_str()));
+        }
 	add_variable_to_symbol_table(value, t, 1, 0);
 	output << ". " << value << std:: endl;
 	}
@@ -425,8 +435,9 @@ var: ident {/*printf("var -> ident\n");*/
 		yyerror(strdup(error.c_str()));
         }
 	int type = check_type(value);
-	if(type == 1){
-		yyerror("Symbol is of type array");
+	if(type == 1 && find(value, Array)){
+		std::string error2 = "Error: used array variable \"" + value + "\" is missing a specified index.";
+		yyerror(strdup(error2.c_str()));
 	}
 	$$ = $1;
 	}
