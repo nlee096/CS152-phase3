@@ -322,7 +322,10 @@ statement: var ASSIGN expression {
 		output << ".> " << temp2 << std::endl;
 	}
 	}
-	| CONTINUE {/*printf("statement -> CONTINUE\n");*/}
+	| CONTINUE {/*printf("statement -> CONTINUE\n");*/
+	std:: string error = "continue statement not within a loop.";
+        yyerror(strdup(error.c_str()));
+	}
 	| RETURN expression {/*printf("statement -> RETURN expression\n");*/
 	/*$$.val = $2.val;
 	$$.name = $2.name;*/
