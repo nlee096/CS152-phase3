@@ -1,0 +1,8 @@
+func main
+. a
+. _temp0
+= _temp0, 150
+= a, _temp0
+.> a
+endfunc
+

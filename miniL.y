@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <sstream>
+#include <fstream>
 #include <string.h>
 #include <stack>
 #include <queue>
@@ -474,12 +475,12 @@ int main(int argc, char **argv) {
    yyparse();
    std::cout << output.str() << std::endl;
    //print_symbol_table();
-/*
-   ofstream file;
-   file.open("converted.mil");
-   file << code.str();
+   /*
+   std::ofstream file;
+   file.open("function.mil");
+   file << output.str();
    file.close();
-*/
+   */
    return 0;
 }
 

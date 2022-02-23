@@ -1,0 +1,62 @@
+func main
+.[] a, 20
+. b
+. c
+. _temp0
+= _temp0, 3
+= b, _temp0
+. _temp1
+= _temp1, 5
+= c, _temp1
+. _temp2
+= _temp2, 0
+. _temp3
++ _temp3, b, c
+[]= a, _temp2, _temp3
+. _temp4
+= _temp4, 0
+. _temp5
+=[] _temp5, a, _temp4
+.> _temp5
+. _temp6
+= _temp6, 1
+. _temp7
+= _temp7, 100
+[]= a, _temp6, _temp7
+. _temp8
+= _temp8, 1
+. _temp9
+=[] _temp9, a, _temp8
+.> _temp9
+. _temp10
+= _temp10, 2
+. _temp11
+= _temp11, 200
+[]= a, _temp10, _temp11
+. _temp12
+= _temp12, 2
+. _temp13
+=[] _temp13, a, _temp12
+.> _temp13
+. _temp14
+= _temp14, 3
+. _temp15
+= _temp15, 0
+. _temp16
+=[] _temp16, a, _temp15
+. _temp17
+= _temp17, 1
+. _temp18
+=[] _temp18, a, _temp17
+. _temp19
++ _temp19, _temp18, c
+. _temp20
+* _temp20, _temp16, _temp19
+[]= a, _temp14, _temp20
+. _temp21
+= _temp21, 3
+. _temp22
+=[] _temp22, a, _temp21
+.> _temp22
+endfunc
+
