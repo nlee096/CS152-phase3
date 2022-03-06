@@ -577,14 +577,14 @@ var_loop: COMMA var var_loop {/*printf("var_loop -> COMMA var var_loop\n");*/}
 %% 
 int main(int argc, char **argv) {
    yyparse();
-   //std::cout << output.str() << std::endl;
+   std::cout << output.str() << std::endl;
    //print_symbol_table();
-   
+   /*
    std::ofstream file;
    file.open("nested_loop.mil");
    file << output.str();
    file.close();
-   
+   */
    return 0;
 }
 
