@@ -1,0 +1,23 @@
+func main
+. a
+. b
+. c
+. _temp0
+= _temp0, 100
+= a, _temp0
+. _temp1
+= _temp1, 50
+= b, _temp1
+. _temp2
+< _temp2, a, b
+?:= __label0__, _temp2
+:= __label1__
+: __label0__
+= c, b
+:= __label2__
+: __label1__
+= c, a
+: __label2__
+.> c
+endfunc
+

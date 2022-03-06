@@ -51,12 +51,12 @@ INVALIDEND	[A-Za-z][A-Za-z0-9_]*_
 "*"		{currpos += yyleng; return MULT;}
 "/"		{currpos += yyleng; return DIV;}
 "%"		{currpos += yyleng; return MOD;}
-"=="		{currpos += yyleng; return EQ;}
-"<>"		{currpos += yyleng; return NEQ;}
-"<"		{currpos += yyleng; return LT;}
-">"		{currpos += yyleng; return GT;}
-"<="            {currpos += yyleng; return LTE;}
-">="		{currpos += yyleng; return GTE;}
+"=="		{yyless(yyleng); currpos += yyleng; yylval.sval = strdup(yytext); return EQ;}
+"<>"		{yyless(yyleng); currpos += yyleng; yylval.sval = strdup(yytext); return NEQ;}
+"<"		{yyless(yyleng); currpos += yyleng; yylval.sval = strdup(yytext); return LT;}
+">"		{yyless(yyleng); currpos += yyleng; yylval.sval = strdup(yytext); return GT;}
+"<="            {yyless(yyleng); currpos += yyleng; yylval.sval = strdup(yytext); return LTE;}
+">="		{yyless(yyleng); currpos += yyleng; yylval.sval = strdup(yytext); return GTE;}
 ";"		{currpos += yyleng; return SEMICOLON;}
 ":"		{currpos += yyleng; return COLON;}
 ","		{currpos += yyleng; return COMMA;}

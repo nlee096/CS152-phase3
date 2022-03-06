@@ -47,10 +47,19 @@ std::vector <Function> symbol_table;
 std::stack<std::string> exp_stack;
 std::queue<std::string> param_queue;
 int param_cnt = 0;
+std::stack<std::string> label_stack;
+std::stack<std::string> var_stack;
+std::stack<std::string> loop_stack; 
+int loop_count = 0;
 
 std::string create_temp(){
   static int count = 0;
   return "_temp" + std::to_string(count++);
+}
+
+std::string create_label(){
+  static int num = 0;
+  return "__label" + std::to_string(num++) + "__";
 }
 
 Function *get_function() {
@@ -184,12 +193,12 @@ void print_symbol_table(void) {
 %token MULT
 %token DIV
 %token MOD
-%token EQ
-%token NEQ
-%token LT
-%token GT
-%token LTE
-%token GTE
+%token <sval> EQ
+%token <sval> NEQ
+%token <sval> LT
+%token <sval> GT
+%token <sval> LTE
+%token <sval> GTE
 %token SEMICOLON
 %token COLON
 %token COMMA
@@ -208,6 +217,8 @@ void print_symbol_table(void) {
 %type <sval> mutiplicative_exp
 %type <sval> term
 %type <sval> ident
+%type <sval> bool_expression
+%type <sval> comp
 /* %start program */
 
 %% 
@@ -306,11 +317,67 @@ statement: var ASSIGN expression {
 	}
 	 
 	}
-	| IF bool_expression THEN statements ENDIF {/*printf("statement -> IF bool_expression THEN statements ENDIF\n");*/}
-	| IF bool_expression THEN statements ELSE statements ENDIF {/*printf("statement -> IF bool_expression THEN statements ELSE statements\n");*/}
-	| WHILE bool_expression BEGINLOOP statements ENDLOOP {/*printf("statement -> WHILE bool_expression BEGINLOOP statements ENDLOOP\n");*/}
+	| IF bool_expression THEN {
+			/*printf("statement -> IF bool_expression THEN statements ENDIF\n");*/
+			std::string iftrue = create_label();
+			std::string endif = create_label();
+			label_stack.push(endif);
+			output << "?:= " << iftrue << ", " << const_cast<char*>($2) << std::endl;
+			output << ":= " << endif << std::endl << ": " << iftrue << std::endl;	
+		}
+		statements else ENDIF {
+			output << ": " << label_stack.top() << std::endl;
+			label_stack.pop();	
+		}
+	| IF bool_expression THEN {
+			std::string iftrue = create_label();
+                	std::string endif = create_label();
+                	label_stack.push(endif);
+                	output << "?:= " << iftrue << ", " << const_cast<char*>($2) << std::endl;
+                	output << ":= " << endif << std::endl << ": " << iftrue << std::endl;
+		}
+		statements ELSE statements ENDIF {/*printf("statement -> IF bool_expression THEN statements ELSE statements\n");*/
+			output << ": " << label_stack.top() << std::endl;
+			label_stack.pop();	
+		}
+	| WHILE {
+			loop_count++;
+			std::string start = create_label();			
+			output << ": " << start << std::endl;
+			loop_stack.push(start);
+		}
+		bool_expression BEGINLOOP {
+			std::string condition = create_label();
+			std::string end = create_label();
+			output << "?:= " << condition << ", " << $3 << std::endl;
+			output << ":= " << end << std::endl;
+			output << ": " << condition << std::endl;
+			loop_stack.push(end);
+		}
+		statements ENDLOOP {/*printf("statement -> WHILE bool_expression BEGINLOOP statements ENDLOOP\n");*/
+			std::string end = loop_stack.top();
+			loop_stack.pop();
+			std::string start = loop_stack.top();
+			loop_stack.pop();
+			output << ":= " << start << std::endl;
+			output << ": " << end << std::endl;
+		}
 	| DO BEGINLOOP statements ENDLOOP WHILE bool_expression {/*printf("statement -> DO BEGINLOOP statements ENDLOOP WHILE bool_expression\n");*/}
-	| READ var var_loop {/*printf("statement -> READ var var_loop\n");*/}
+	| READ var var_loop {/*printf("statement -> READ var var_loop\n");*/
+		var_stack.push($2);
+		while(!var_stack.empty()){
+			std::string temp  = $2;
+			int type = check_type(temp);
+			if(type == 0){
+				output << ".< " << var_stack.top() << std::endl;
+				var_stack.pop();
+			}
+			else{
+				output << ".[]< " << var_stack.top() << ", "  << find_index(var_stack.top()) << std::endl; //idk if this this right
+				var_stack.pop();
+			}
+		}
+	}
 	| WRITE var var_loop {/*printf("statement -> WRITE var var_loop\n");*/
 	std::string temp = $2;
 	if(check_type(temp) == 0){
@@ -324,14 +391,35 @@ statement: var ASSIGN expression {
 	}
 	}
 	| CONTINUE {/*printf("statement -> CONTINUE\n");*/
-	std:: string error = "continue statement not within a loop.";
-        yyerror(strdup(error.c_str()));
+		if(loop_count < 1){
+			std:: string error = "continue statement not within a loop.";
+        		yyerror(strdup(error.c_str()));
+		}
+		
 	}
 	| RETURN expression {/*printf("statement -> RETURN expression\n");*/
 	/*$$.val = $2.val;
 	$$.name = $2.name;*/
 	output << "ret " << const_cast<char*>($2) << std::endl;
 	}
+	| BREAK{
+		if(loop_count < 1){
+			std:: string error = "break statement not within a loop.";
+                        yyerror(strdup(error.c_str()));
+                }
+		std::string end = loop_stack.top();
+		output << ":= " << end << std::endl;
+	}
+;
+else: ELSE {
+		std::string alt = create_label();
+		output << ":= " << alt << std::endl;
+		output << ": " << label_stack.top() << std::endl;
+		label_stack.pop();
+		label_stack.push(alt);
+	}
+	statements
+	| {/* no else*/}
 ;
 
 expressions: expression {/*printf("expressions -> expression\n");*/
@@ -389,16 +477,32 @@ mutiplicative_exp: term MULT mutiplicative_exp {/*printf("mutiplicative_exp -> t
 	} 
 ;
 
-bool_expression: NOT bool_expression {/*printf("bool_expression -> NOT bool_expression\n");*/}
-	| expression comp expression {/*printf("bool_expression -> expression comp expression\n");*/}
+bool_expression: NOT bool_expression {/*printf("bool_expression -> NOT bool_expression\n");*/
+	std::string temp = create_temp();
+        $$ = strdup(temp.c_str());
+	output << ". " << temp << std::endl;
+	output << "! " << temp << ", " << $2 << std::endl;
+	}
+	| expression comp expression {/*printf("bool_expression -> expression comp expression\n");*/
+	std::string temp = create_temp();
+        $$ = strdup(temp.c_str());
+	output << ". " << temp << std::endl;
+	output << $2 << " " << temp << ", " << $1 << ", " << $3 << std::endl;
+	}
 ;
 
-comp: EQ {/*printf("comp -> EQ\n");*/}
-	| NEQ {/*printf("comp -> NEQ\n");*/}
-	| LT {/*printf("comp -> LT\n");*/}
-	| GT {/*printf("comp -> GT\n");*/}
-	| LTE {/*printf("comp -> LTE\n");*/}
-	| GTE {/*printf("comp -> GTE\n");*/}
+comp: EQ {/*printf("comp -> EQ\n");*/
+        	$$ = $1;}
+	| NEQ {/*printf("comp -> NEQ\n");*/
+		$$ = $1;}
+	| LT {/*printf("comp -> LT\n");*/
+		$$ = $1;}
+	| GT {/*printf("comp -> GT\n");*/
+		$$ = $1;}
+	| LTE {/*printf("comp -> LTE\n");*/
+		$$ = $1;}
+	| GTE {/*printf("comp -> GTE\n");*/
+		$$ = $1;}
 ;
 
 term: var {/*printf("term -> var\n");*/
@@ -433,7 +537,7 @@ term: var {/*printf("term -> var\n");*/
 ;
 
 var: ident {/*printf("var -> ident\n");*/
-        std::string value = $1;
+	std::string value = $1;
 	if(!find(value, Integer) && !find(value, Array)){
                 std::string error = "Error: Used variable \"" + value + "\" ident was not previously defined";
 		yyerror(strdup(error.c_str()));
@@ -473,14 +577,14 @@ var_loop: COMMA var var_loop {/*printf("var_loop -> COMMA var var_loop\n");*/}
 %% 
 int main(int argc, char **argv) {
    yyparse();
-   std::cout << output.str() << std::endl;
+   //std::cout << output.str() << std::endl;
    //print_symbol_table();
-   /*
+   
    std::ofstream file;
-   file.open("function.mil");
+   file.open("nested_loop.mil");
    file << output.str();
    file.close();
-   */
+   
    return 0;
 }
 

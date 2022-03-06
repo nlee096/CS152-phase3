@@ -1,0 +1,44 @@
+func fibonacci
+. k
+= k, $0
+. _temp0
+= _temp0, 1
+. _temp1
+<= _temp1, k, _temp0
+?:= __label0__, _temp1
+:= __label1__
+: __label0__
+. _temp2
+= _temp2, 1
+ret _temp2
+: __label1__
+. _temp3
+= _temp3, 1
+. _temp4
+- _temp4, k, _temp3
+param _temp4
+. _temp5
+call fibonacci, _temp5
+. _temp6
+= _temp6, 2
+. _temp7
+- _temp7, k, _temp6
+param _temp7
+. _temp8
+call fibonacci, _temp8
+. _temp9
++ _temp9, _temp5, _temp8
+ret _temp9
+endfunc
+
+func main
+. n
+. fib_n
+.< n
+param n
+. _temp10
+call fibonacci, _temp10
+= fib_n, _temp10
+.> fib_n
+endfunc
+
