@@ -395,7 +395,14 @@ statement: var ASSIGN expression {
 			std:: string error = "continue statement not within a loop.";
         		yyerror(strdup(error.c_str()));
 		}
-		
+		std::string end = loop_stack.top();
+		loop_stack.pop();
+		std::string condition = loop_stack.top();
+		loop_stack.pop();
+		std::string start = loop_stack.top();
+		output << ":= " << start << std::endl;
+		loop_stack.push(condition);
+		loop_stack.push(end);		
 	}
 	| RETURN expression {/*printf("statement -> RETURN expression\n");*/
 	/*$$.val = $2.val;
@@ -577,14 +584,14 @@ var_loop: COMMA var var_loop {/*printf("var_loop -> COMMA var var_loop\n");*/}
 %% 
 int main(int argc, char **argv) {
    yyparse();
-   std::cout << output.str() << std::endl;
+   //std::cout << output.str() << std::endl;
    //print_symbol_table();
-   /*
+   
    std::ofstream file;
    file.open("nested_loop.mil");
    file << output.str();
    file.close();
-   */
+   
    return 0;
 }
 
