@@ -50,6 +50,7 @@ int param_cnt = 0;
 std::stack<std::string> label_stack;
 std::stack<std::string> var_stack;
 std::stack<std::string> loop_stack; 
+std::stack<int> loop_type;
 int loop_count = 0;
 
 std::string create_temp(){
@@ -345,6 +346,7 @@ statement: var ASSIGN expression {
 			std::string start = create_label();			
 			output << ": " << start << std::endl;
 			loop_stack.push(start);
+			loop_type.push(1);
 		}
 		bool_expression BEGINLOOP {
 			std::string condition = create_label();
@@ -353,16 +355,46 @@ statement: var ASSIGN expression {
 			output << ":= " << end << std::endl;
 			output << ": " << condition << std::endl;
 			loop_stack.push(end);
+			loop_type.push(2);
 		}
 		statements ENDLOOP {/*printf("statement -> WHILE bool_expression BEGINLOOP statements ENDLOOP\n");*/
 			std::string end = loop_stack.top();
 			loop_stack.pop();
+			loop_type.pop();
 			std::string start = loop_stack.top();
 			loop_stack.pop();
+			loop_type.pop();
 			output << ":= " << start << std::endl;
 			output << ": " << end << std::endl;
+			loop_count--;
 		}
-	| DO BEGINLOOP statements ENDLOOP WHILE bool_expression {/*printf("statement -> DO BEGINLOOP statements ENDLOOP WHILE bool_expression\n");*/}
+	| DO BEGINLOOP{
+			loop_count++;
+			std::string start = create_label();
+			loop_stack.push(start);
+			loop_type.push(3);
+			std::string check = create_label();
+			loop_stack.push(check);
+			loop_type.push(4);
+			std::string end = create_label();
+			loop_stack.push(end);
+			loop_type.push(5);
+			output << ": " << start << std::endl;		
+		} statements ENDLOOP WHILE bool_expression {/*printf("statement -> DO BEGINLOOP statements ENDLOOP WHILE bool_expression\n");*/
+			std::string end = loop_stack.top();
+			loop_stack.pop();
+			loop_type.pop();		
+			std::string check = loop_stack.top();
+			loop_stack.pop();
+			loop_type.pop();
+			std::string start = loop_stack.top();
+			output << ": " << check << std::endl;
+			output << "?:= " << start << ", " << $7 << std::endl;
+			output << ": " << end << std::endl;
+			loop_stack.pop();
+			loop_type.pop();
+			loop_count--; 
+		}
 	| READ var var_loop {/*printf("statement -> READ var var_loop\n");*/
 		var_stack.push($2);
 		while(!var_stack.empty()){
@@ -395,14 +427,24 @@ statement: var ASSIGN expression {
 			std:: string error = "continue statement not within a loop.";
         		yyerror(strdup(error.c_str()));
 		}
-		std::string end = loop_stack.top();
-		loop_stack.pop();
-		std::string condition = loop_stack.top();
-		loop_stack.pop();
-		std::string start = loop_stack.top();
-		output << ":= " << start << std::endl;
-		loop_stack.push(condition);
-		loop_stack.push(end);		
+		if(loop_type.top() == 2){
+			std::string end = loop_stack.top();
+			loop_stack.pop();
+			std::string start = loop_stack.top();
+			output << ":= " << start << std::endl;
+			loop_stack.push(end);
+		}
+		else if(loop_type.top() == 5){
+			std::string end = loop_stack.top();
+			loop_stack.pop();
+			std::string check = loop_stack.top();
+			output << ":= " << check << std::endl;
+			loop_stack.push(end);
+		}
+		else{
+			std::string error = "continue found in incomplete loop";
+			yyerror(strdup(error.c_str()));
+		}		 		
 	}
 	| RETURN expression {/*printf("statement -> RETURN expression\n");*/
 	/*$$.val = $2.val;
@@ -414,8 +456,18 @@ statement: var ASSIGN expression {
 			std:: string error = "break statement not within a loop.";
                         yyerror(strdup(error.c_str()));
                 }
-		std::string end = loop_stack.top();
-		output << ":= " << end << std::endl;
+		if(loop_type.top() == 2){
+			std::string end = loop_stack.top();
+			output << ":= " << end << std::endl;
+		}
+		else if(loop_type.top() == 5){
+			std::string end = loop_stack.top();
+			output << ":= " << end << std::endl;
+		}
+		else{
+			std::string error = "break found in incomplete loop";
+                        yyerror(strdup(error.c_str())); 
+		}
 	}
 ;
 else: ELSE {
@@ -584,14 +636,14 @@ var_loop: COMMA var var_loop {/*printf("var_loop -> COMMA var var_loop\n");*/}
 %% 
 int main(int argc, char **argv) {
    yyparse();
-   //std::cout << output.str() << std::endl;
+   std::cout << output.str() << std::endl;
    //print_symbol_table();
-   
+   /*
    std::ofstream file;
-   file.open("nested_loop.mil");
+   file.open("fibonacci.mil");
    file << output.str();
    file.close();
-   
+   */
    return 0;
 }
 
